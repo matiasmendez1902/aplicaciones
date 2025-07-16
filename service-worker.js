@@ -1,4 +1,4 @@
-const CACHE_NAME = 'agro-app-cache-v1'; // Cambia el nombre del caché para esta app
+const CACHE_NAME = 'agro-app-cache-v4'; // Cambia el nombre del caché para esta app
 const urlsToCache = [
   '/',
   '/index.html',
