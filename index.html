@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>App Agroquímica PWA - Firebase</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/icon-192.png">
+    <meta name="theme-color" content="#4CAF50"/>
+
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+</head>
+<body class="bg-gradient-to-br from-green-500 to-green-700 min-h-screen flex flex-col items-center justify-start text-white p-4">
+
+    <div class="w-full max-w-4xl bg-white bg-opacity-20 backdrop-filter backdrop-blur-lg rounded-xl shadow-2xl p-6 md:p-8 mb-8 mt-4">
+        <h1 class="text-3xl font-bold mb-6 text-center">Registro de Aplicaciones Agroquímicas</h1>
+
+        <div class="flex justify-center mb-6 border-b border-gray-300">
+            <button id="tab-ingreso" class="py-3 px-6 text-lg font-semibold border-b-4 border-transparent hover:border-white focus:outline-none transition-colors duration-200 tab-button active" data-target="ingreso-form">
+                Ingreso de Aplicación
+            </button>
+            <button id="tab-registros" class="py-3 px-6 text-lg font-semibold border-b-4 border-transparent hover:border-white focus:outline-none transition-colors duration-200 tab-button" data-target="registros-list">
+                Registros
+            </button>
+            <button id="tab-cuarteles" class="py-3 px-6 text-lg font-semibold border-b-4 border-transparent hover:border-white focus:outline-none transition-colors duration-200 tab-button" data-target="cuarteles-crud">
+                Cuarteles
+            </button>
+            <button id="tab-productos" class="py-3 px-6 text-lg font-semibold border-b-4 border-transparent hover:border-white focus:outline-none transition-colors duration-200 tab-button" data-target="productos-crud">
+                Productos
+            </button>
+        </div>
+
+        <div id="ingreso-form" class="tab-content active">
+            <h2 class="text-2xl font-semibold mb-4">Nueva Aplicación</h2>
+            <form id="applicationForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="fecha" class="block text-sm font-medium mb-1">Fecha:</label>
+                    <input type="date" id="fecha" required class="w-full p-2 rounded-md bg-white bg-opacity-30 text-white focus:outline-none focus:ring-2 focus:ring-green-300"/>
+                </div>
+                <div>
+                    <label for="fundo" class="block text-sm font-medium mb-1">Fundo:</label>
+                    <input type="text" id="fundo" placeholder="Nombre del fundo" required class="w-full p-2 rounded-md bg-white bg-opacity-30 text-white focus:outline-none focus:ring-2 focus:ring-green-300"/>
+                </div>
+                <div>
+                    <label for="especie" class="block text-sm font-medium mb-1">Especie:</label>
+                    <input type="text" id="especie" placeholder="Ej: Manzana, Uva" required class="w-full p-2 rounded-md bg-white bg-opacity-30 text-white focus:outline-none focus:ring-2 focus:ring-green-300"/>
+                </div>
+                <div>
+                    <label for="maquinaria" class="block text-sm font-medium mb-1">Maquinaria:</label>
+                    <input type="text" id="maquinaria" placeholder="Ej: Tractor John Deere" class="w-full p-2 rounded-md bg-white bg-opacity-30 text-white focus:outline-none focus:ring-2 focus:ring-green-300"/>
+                </div>
+                <div>
+                    <label for="aplicador" class="block text-sm font-medium mb-1">Aplicador:</label>
+                    <input type="text" id="aplicador" placeholder="Nombre del aplicador" class="w-full p-2 rounded-md bg-white bg-opacity-30 text-white focus:outline-none focus:ring-2 focus:ring-green-300"/>
+                </div>
+                <div class="md:col-span-2">
+                    <label for="observaciones" class="block text-sm font-medium mb-1">Observaciones:</label>
+                    <textarea id="observaciones" rows="3" placeholder="Notas adicionales" class="w-full p-2 rounded-md bg-white bg-opacity-30 text-white focus:outline-none focus:ring-2 focus:ring-green-300"></textarea>
+                </div>
+
+                <div class="md:col-span-2 mt-4">
+                    <h3 class="text-xl font-semibold mb-2">Selección de Cuarteles</h3>
+                    <div id="cuartelesContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 border p-3 rounded-md bg-white bg-opacity-10">
+                        </div>
+                </div>
+
+                <div class="md:col-span-2 mt-4">
+                    <h3 class="text-xl font-semibold mb-2">Selección de Productos Agroquímicos</h3>
+                    <div id="productosContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 border p-3 rounded-md bg-white bg-opacity-10">
+                        </div>
+                </div>
+
+                <div class="md:col-span-2 mt-6">
+                    <h3 class="text-xl font-semibold mb-2">Resultados del Cálculo</h3>
+                    <div class="bg-white bg-opacity-10 p-4 rounded-md">
+                        <p class="mb-2">**Solución Total (Litros de agua):** <span id="solucionTotalDisplay" class="font-bold text-lg">0 L</span></p>
+                        <ul id="productCalculationList">
+                            </ul>
+                    </div>
+                </div>
+
+                <div class="md:col-span-2 mt-6 flex justify-end">
+                    <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-lg text-lg shadow-md transform transition duration-200 hover:scale-105 active:scale-95 focus:outline-none focus:ring-4 focus:ring-green-300">
+                        Registrar Aplicación
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div id="registros-list" class="tab-content hidden">
+            <h2 class="text-2xl font-semibold mb-4">Historial de Registros</h2>
+            <div class="mb-4">
+                <input type="text" id="searchApplications" placeholder="Buscar registros..." class="w-full p-2 rounded-md bg-white bg-opacity-30 text-white placeholder-gray-200 focus:outline-none focus:ring-2 focus:ring-green-300"/>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full bg-white bg-opacity-10 rounded-md">
+                    <thead>
+                        <tr>
+                            <th class="py-2 px-4 border-b border-gray-400 text-left cursor-pointer" data-sort="fecha">Fecha</th>
+                            <th class="py-2 px-4 border-b border-gray-400 text-left cursor-pointer" data-sort="fundo">Fundo</th>
+                            <th class="py-2 px-4 border-b border-gray-400 text-left cursor-pointer" data-sort="cuarteles">Cuarteles</th>
+                            <th class="py-2 px-4 border-b border-gray-400 text-left cursor-pointer" data-sort="productos">Productos</th>
+                            <th class="py-2 px-4 border-b border-gray-400 text-left">Sol. Total (L)</th>
+                            <th class="py-2 px-4 border-b border-gray-400 text-left">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="applicationsTableBody">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="cuarteles-crud" class="tab-content hidden">
+            <h2 class="text-2xl font-semibold mb-4">Gestión de Cuarteles</h2>
+            <form id="cuartelForm" class="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label for="cuartelNumero" class="block text-sm font-medium mb-1">Número/ID:</label>
+                    <input type="text" id="cuartelNumero" placeholder="Ej: C1, FundoA-01" required class="w-full p-2 rounded-md bg-white bg-opacity-30 text-white focus:outline-none focus:ring-2 focus:ring-green-300"/>
+                </div>
+                <div>
+                    <label for="cuartelVariedad" class="block text-sm font-medium mb-1">Variedad:</label>
+                    <input type="text" id="cuartelVariedad" placeholder="Ej: Gala, Cabernet" required class="w-full p-2 rounded-md bg-white bg-opacity-30 text-white focus:outline-none focus:ring-2 focus:ring-green-300"/>
+                </div>
+                <div>
+                    <label for="cuartelSuperficie" class="block text-sm font-medium mb-1">Superficie (ha):</label>
+                    <input type="number" step="0.01" id="cuartelSuperficie" placeholder="Ej: 10.5" required class="w-full p-2 rounded-md bg-white bg-opacity-30 text-white focus:outline-none focus:ring-2 focus:ring-green-300"/>
+                </div>
+                <div class="md:col-span-1">
+                    <label for="cuartelMojamiento" class="block text-sm font-medium mb-1">Mojamiento (L/ha):</label>
+                    <input type="number" step="0.1" id="cuartelMojamiento" placeholder="Ej: 1500" required class="w-full p-2 rounded-md bg-white bg-opacity-30 text-white focus:outline-none focus:ring-2 focus:ring-green-300"/>
+                </div>
+                <div class="md:col-span-3 flex justify-end">
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg shadow-md">
+                        Guardar Cuartel
+                    </button>
+                    <button type="button" id="cancelEditCuartel" class="hidden ml-3 bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded-lg shadow-md">
+                        Cancelar Edición
+                    </button>
+                </div>
+            </form>
+            <div class="overflow-x-auto">
+                <table class="min-w-full bg-white bg-opacity-10 rounded-md">
+                    <thead>
+                        <tr>
+                            <th class="py-2 px-4 border-b border-gray-400 text-left">Número/ID</th>
+                            <th class="py-2 px-4 border-b border-gray-400 text-left">Variedad</th>
+                            <th class="py-2 px-4 border-b border-gray-400 text-left">Superficie (ha)</th>
+                            <th class="py-2 px-4 border-b border-gray-400 text-left">Mojamiento (L/ha)</th>
+                            <th class="py-2 px-4 border-b border-gray-400 text-left">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cuartelesTableBody">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="productos-crud" class="tab-content hidden">
+            <h2 class="text-2xl font-semibold mb-4">Gestión de Productos</h2>
+            <form id="productoForm" class="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label for="productoNombre" class="block text-sm font-medium mb-1">Nombre Comercial:</label>
+                    <input type="text" id="productoNombre" placeholder="Ej: Mancozebe 80WP" required class="w-full p-2 rounded-md bg-white bg-opacity-30 text-white focus:outline-none focus:ring-2 focus:ring-green-300"/>
+                </div>
+                <div>
+                    <label for="productoIngrediente" class="block text-sm font-medium mb-1">Ingrediente Activo:</label>
+                    <input type="text" id="productoIngrediente" placeholder="Ej: Mancozeb" class="w-full p-2 rounded-md bg-white bg-opacity-30 text-white focus:outline-none focus:ring-2 focus:ring-green-300"/>
+                </div>
+                <div>
+                    <label for="productoUnidad" class="block text-sm font-medium mb-1">Unidad de Medida:</label>
+                    <select id="productoUnidad" required class="w-full p-2 rounded-md bg-white bg-opacity-30 text-white focus:outline-none focus:ring-2 focus:ring-green-300">
+                        <option value="Litros">Litros</option>
+                        <option value="Kilos">Kilos</option>
+                        <option value="Gramos">Gramos</option>
+                        <option value="ml">ml</option>
+                    </select>
+                </div>
+                <div class="md:col-span-1">
+                    <label for="productoDosis" class="block text-sm font-medium mb-1">Dosis por 100L:</label>
+                    <input type="number" step="0.01" id="productoDosis" placeholder="Ej: 200 (ml/g)" required class="w-full p-2 rounded-md bg-white bg-opacity-30 text-white focus:outline-none focus:ring-2 focus:ring-green-300"/>
+                </div>
+                <div class="md:col-span-3 flex justify-end">
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg shadow-md">
+                        Guardar Producto
+                    </button>
+                    <button type="button" id="cancelEditProducto" class="hidden ml-3 bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded-lg shadow-md">
+                        Cancelar Edición
+                    </button>
+                </div>
+            </form>
+            <div class="overflow-x-auto">
+                <table class="min-w-full bg-white bg-opacity-10 rounded-md">
+                    <thead>
+                        <tr>
+                            <th class="py-2 px-4 border-b border-gray-400 text-left">Nombre Comercial</th>
+                            <th class="py-2 px-4 border-b border-gray-400 text-left">Ingrediente Activo</th>
+                            <th class="py-2 px-4 border-b border-gray-400 text-left">Unidad</th>
+                            <th class="py-2 px-4 border-b border-gray-400 text-left">Dosis/100L</th>
+                            <th class="py-2 px-4 border-b border-gray-400 text-left">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="productosTableBody">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg opacity-0 transform -translate-y-full transition-all duration-300 ease-out z-50">
+        Mensaje del Toast
+    </div>
+
+    <script>
+        // TU OBJETO firebaseConfig OBTENIDO DEL PASO 2 EN LA CONSOLA DE FIREBASE
+        const firebaseConfig = {
+          apiKey: "TU_API_KEY", // <--- REEMPLAZA ESTO
+          authDomain: "TU_AUTH_DOMAIN", // <--- REEMPLAZA ESTO
+          projectId: "TU_PROJECT_ID", // <--- REEMPLAZA ESTO
+          storageBucket: "TU_STORAGE_BUCKET",
+          messagingSenderId: "TU_MESSAGING_SENDER_ID",
+          appId: "TU_APP_ID",
+          // measurementId: "TU_MEASUREMENT_ID" // Opcional, si no usas Analytics
+        };
+
+        // Inicializar Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Referencias a las colecciones de Firestore
+        const applicationsCollection = db.collection('applications');
+        const cuartelesCollection = db.collection('cuarteles');
+        const productosCollection = db.collection('productos');
+
+        // Variables globales para los datos (ahora serán arrays locales que se sincronizan con Firestore)
+        let cuarteles = [];
+        let productos = [];
+        let aplicaciones = [];
+
+        // Elementos del DOM (resto del código HTML permanece igual)
+        const tabs = document.querySelectorAll('.tab-button');
+        const contents = document.querySelectorAll('.tab-content');
+
+        const applicationForm = document.getElementById('applicationForm');
+        const cuartelesContainer = document.getElementById('cuartelesContainer');
+        const productosContainer = document.getElementById('productosContainer');
+        const solucionTotalDisplay = document.getElementById('solucionTotalDisplay');
+        const productCalculationList = document.getElementById('productCalculationList');
+
+        const applicationsTableBody = document.getElementById('applicationsTableBody');
+        const searchApplications = document.getElementById('searchApplications');
+
+        const cuartelForm = document.getElementById('cuartelForm');
+        const cuartelNumero = document.getElementById('cuartelNumero');
+        const cuartelVariedad = document.getElementById('cuartelVariedad');
+        const cuartelSuperficie = document.getElementById('cuartelSuperficie');
+        const cuartelMojamiento = document.getElementById('cuartelMojamiento');
+        const cuartelesTableBody = document.getElementById('cuartelesTableBody');
+        const saveCuartelBtn = cuartelForm.querySelector('button[type="submit"]');
+        const cancelEditCuartelBtn = document.getElementById('cancelEditCuartel');
+        let editingCuartelId = null;
+
+        const productoForm = document.getElementById('productoForm');
+        const productoNombre = document.getElementById('productoNombre');
+        const productoIngrediente = document.getElementById('productoIngrediente');
+        const productoUnidad = document.getElementById('productoUnidad');
+        const productoDosis = document.getElementById('productoDosis');
+        const productosTableBody = document.getElementById('productosTableBody');
+        const saveProductoBtn = productoForm.querySelector('button[type="submit"]');
+        const cancelEditProductoBtn = document.getElementById('cancelEditProducto');
+        let editingProductoId = null;
+
+        const toast = document.getElementById('toast');
+
+        // --- Funciones Generales ---
+        function showToast(message) {
+            toast.textContent = message;
+            toast.classList.remove('opacity-0', '-translate-y-full');
+            toast.classList.add('opacity-100', 'translate-y-0');
+            setTimeout(() => {
+                toast.classList.remove('opacity-100', 'translate-y-0');
+                toast.classList.add('opacity-0', '-translate-y-full');
+            }, 3000);
+        }
+
+        // --- Funcionalidad de Pestañas ---
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                // Desactivar pestaña activa y contenido
+                tabs.forEach(item => item.classList.remove('active', 'border-white'));
+                contents.forEach(item => item.classList.remove('active', 'flex'));
+                contents.forEach(item => item.classList.add('hidden'));
+
+                // Activar pestaña clickeada y contenido
+                tab.classList.add('active', 'border-white');
+                const targetId = tab.dataset.target;
+                const targetContent = document.getElementById(targetId);
+                targetContent.classList.add('active', 'flex'); // Usar flex para elementos que necesitan flexbox
+                targetContent.classList.remove('hidden');
+
+                // Actualizar listas al cambiar de pestaña
+                if (targetId === 'registros-list') {
+                    renderApplications(); // Esto ahora se actualizará con el listener de Firestore
+                } else if (targetId === 'cuarteles-crud') {
+                    renderCuartelesTable(); // Esto ahora se actualizará con el listener de Firestore
+                } else if (targetId === 'productos-crud') {
+                    renderProductosTable(); // Esto ahora se actualizará con el listener de Firestore
+                } else if (targetId === 'ingreso-form') {
+                    renderCuartelesCheckboxes();
+                    renderProductosCheckboxes();
+                    calculateApplicationSummary(); // Recalcular al volver al formulario
+                }
+            });
+        });
+
+        // --- Gestión de Cuarteles (Firebase Integration) ---
+        function renderCuartelesTable() {
+            cuartelesTableBody.innerHTML = '';
+            if (cuarteles.length === 0) {
+                 cuartelesTableBody.innerHTML = '<tr><td colspan="5" class="py-4 text-center text-white text-opacity-75">No hay cuarteles registrados.</td></tr>';
+                 return;
+            }
+            cuarteles.forEach(cuartel => {
+                const row = `
+                    <tr class="border-b border-gray-500 last:border-b-0">
+                        <td class="py-2 px-4">${cuartel.numero}</td>
+                        <td class="py-2 px-4">${cuartel.variedad}</td>
+                        <td class="py-2 px-4">${cuartel.superficie}</td>
+                        <td class="py-2 px-4">${cuartel.mojamiento}</td>
+                        <td class="py-2 px-4">
+                            <button onclick="editCuartel('${cuartel.id}')" class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded-md text-sm mr-2">Editar</button>
+                            <button onclick="deleteCuartel('${cuartel.id}')" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md text-sm">Eliminar</button>
+                        </td>
+                    </tr>
+                `;
+                cuartelesTableBody.insertAdjacentHTML('beforeend', row);
+            });
+        }
+
+        async function addUpdateCuartel(e) {
+            e.preventDefault();
+            const numero = cuartelNumero.value.trim();
+            const variedad = cuartelVariedad.value.trim();
+            const superficie = parseFloat(cuartelSuperficie.value);
+            const mojamiento = parseFloat(cuartelMojamiento.value);
+
+            if (!numero || !variedad || isNaN(superficie) || isNaN(mojamiento)) {
+                showToast('Por favor, completa todos los campos del cuartel.');
+                return;
+            }
+
+            try {
+                if (editingCuartelId) {
+                    // Actualizar existente
+                    await cuartelesCollection.doc(editingCuartelId).update({ numero, variedad, superficie, mojamiento });
+                    showToast('Cuartel actualizado exitosamente.');
+                } else {
+                    // Añadir nuevo
+                    // Opcional: Verificar si ya existe un cuartel con el mismo número antes de añadir
+                    const existingCuartel = await cuartelesCollection.where('numero', '==', numero).get();
+                    if (!existingCuartel.empty) {
+                        showToast('Ya existe un cuartel con ese número/ID.');
+                        return;
+                    }
+                    await cuartelesCollection.add({ numero, variedad, superficie, mojamiento });
+                    showToast('Cuartel añadido exitosamente.');
+                }
+            } catch (error) {
+                console.error("Error al guardar cuartel:", error);
+                showToast('Error al guardar cuartel.');
+            } finally {
+                cuartelForm.reset();
+                editingCuartelId = null;
+                saveCuartelBtn.textContent = 'Guardar Cuartel';
+                cancelEditCuartelBtn.classList.add('hidden');
+            }
+        }
+
+        function editCuartel(id) {
+            const cuartel = cuarteles.find(c => c.id === id);
+            if (cuartel) {
+                cuartelNumero.value = cuartel.numero;
+                cuartelVariedad.value = cuartel.variedad;
+                cuartelSuperficie.value = cuartel.superficie;
+                cuartelMojamiento.value = cuartel.mojamiento;
+                editingCuartelId = id;
+                saveCuartelBtn.textContent = 'Actualizar Cuartel';
+                cancelEditCuartelBtn.classList.remove('hidden');
+            }
+        }
+
+        async function deleteCuartel(id) {
+            if (confirm('¿Estás seguro de que quieres eliminar este cuartel?')) {
+                try {
+                    await cuartelesCollection.doc(id).delete();
+                    showToast('Cuartel eliminado.');
+                } catch (error) {
+                    console.error("Error al eliminar cuartel:", error);
+                    showToast('Error al eliminar cuartel.');
+                }
+            }
+        }
+
+        cuartelForm.addEventListener('submit', addUpdateCuartel);
+        cancelEditCuartelBtn.addEventListener('click', () => {
+            cuartelForm.reset();
+            editingCuartelId = null;
+            saveCuartelBtn.textContent = 'Guardar Cuartel';
+            cancelEditCuartelBtn.classList.add('hidden');
+        });
+
+        // --- Gestión de Productos (Firebase Integration) ---
+        function renderProductosTable() {
+            productosTableBody.innerHTML = '';
+            if (productos.length === 0) {
+                productosTableBody.innerHTML = '<tr><td colspan="5" class="py-4 text-center text-white text-opacity-75">No hay productos registrados.</td></tr>';
+                return;
+            }
+            productos.forEach(producto => {
+                const row = `
+                    <tr class="border-b border-gray-500 last:border-b-0">
+                        <td class="py-2 px-4">${producto.nombreComercial}</td>
+                        <td class="py-2 px-4">${producto.ingredienteActivo}</td>
+                        <td class="py-2 px-4">${producto.unidadMedida}</td>
+                        <td class="py-2 px-4">${producto.dosisPor100L}</td>
+                        <td class="py-2 px-4">
+                            <button onclick="editProducto('${producto.id}')" class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded-md text-sm mr-2">Editar</button>
+                            <button onclick="deleteProducto('${producto.id}')" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md text-sm">Eliminar</button>
+                        </td>
+                    </tr>
+                `;
+                productosTableBody.insertAdjacentHTML('beforeend', row);
+            });
+        }
+
+        async function addUpdateProducto(e) {
+            e.preventDefault();
+            const nombreComercial = productoNombre.value.trim();
+            const ingredienteActivo = productoIngrediente.value.trim();
+            const unidadMedida = productoUnidad.value;
+            const dosisPor100L = parseFloat(productoDosis.value);
+
+            if (!nombreComercial || !unidadMedida || isNaN(dosisPor100L)) {
+                showToast('Por favor, completa todos los campos obligatorios del producto.');
+                return;
+            }
+
+            try {
+                if (editingProductoId) {
+                    // Actualizar existente
+                    await productosCollection.doc(editingProductoId).update({ nombreComercial, ingredienteActivo, unidadMedida, dosisPor100L });
+                    showToast('Producto actualizado exitosamente.');
+                } else {
+                    // Añadir nuevo
+                    const existingProducto = await productosCollection.where('nombreComercial', '==', nombreComercial).get();
+                    if (!existingProducto.empty) {
+                        showToast('Ya existe un producto con ese nombre comercial.');
+                        return;
+                    }
+                    await productosCollection.add({ nombreComercial, ingredienteActivo, unidadMedida, dosisPor100L });
+                    showToast('Producto añadido exitosamente.');
+                }
+            } catch (error) {
+                console.error("Error al guardar producto:", error);
+                showToast('Error al guardar producto.');
+            } finally {
+                productoForm.reset();
+                editingProductoId = null;
+                saveProductoBtn.textContent = 'Guardar Producto';
+                cancelEditProductoBtn.classList.add('hidden');
+            }
+        }
+
+        function editProducto(id) {
+            const producto = productos.find(p => p.id === id);
+            if (producto) {
+                productoNombre.value = producto.nombreComercial;
+                productoIngrediente.value = producto.ingredienteActivo;
+                productoUnidad.value = producto.unidadMedida;
+                productoDosis.value = producto.dosisPor100L;
+                editingProductoId = id;
+                saveProductoBtn.textContent = 'Actualizar Producto';
+                cancelEditProductoBtn.classList.remove('hidden');
+            }
+        }
+
+        async function deleteProducto(id) {
+            if (confirm('¿Estás seguro de que quieres eliminar este producto?')) {
+                try {
+                    await productosCollection.doc(id).delete();
+                    showToast('Producto eliminado.');
+                } catch (error) {
+                    console.error("Error al eliminar producto:", error);
+                    showToast('Error al eliminar producto.');
+                }
+            }
+        }
+
+        productoForm.addEventListener('submit', addUpdateProducto);
+        cancelEditProductoBtn.addEventListener('click', () => {
+            productoForm.reset();
+            editingProductoId = null;
+            saveProductoBtn.textContent = 'Guardar Producto';
+            cancelEditProductoBtn.classList.add('hidden');
+        });
+
+        // --- Lógica del Formulario de Aplicación ---
+        function renderCuartelesCheckboxes() {
+            cuartelesContainer.innerHTML = '';
+            if (cuarteles.length === 0) {
+                cuartelesContainer.innerHTML = '<p class="text-white text-opacity-75 md:col-span-4">No hay cuarteles registrados. Ve a la pestaña "Cuarteles" para añadir algunos.</p>';
+                return;
+            }
+            cuarteles.forEach(cuartel => {
+                const checkboxDiv = `
+                    <div class="flex items-center">
+                        <input type="checkbox" id="cuartel-${cuartel.id}" name="selectedCuarteles" value="${cuartel.id}"
+                               class="form-checkbox h-5 w-5 text-green-600 rounded focus:ring-green-500 mr-2"
+                               data-superficie="${cuartel.superficie}" data-mojamiento="${cuartel.mojamiento}">
+                        <label for="cuartel-${cuartel.id}" class="text-sm cursor-pointer">${cuartel.numero} (${cuartel.superficie}ha, ${cuartel.mojamiento}L/ha)</label>
+                    </div>
+                `;
+                cuartelesContainer.insertAdjacentHTML('beforeend', checkboxDiv);
+            });
+            document.querySelectorAll('input[name="selectedCuarteles"]').forEach(checkbox => {
+                checkbox.addEventListener('change', calculateApplicationSummary);
+            });
+        }
+
+        function renderProductosCheckboxes() {
+            productosContainer.innerHTML = '';
+            if (productos.length === 0) {
+                productosContainer.innerHTML = '<p class="text-white text-opacity-75 md:col-span-3">No hay productos registrados. Ve a la pestaña "Productos" para añadir algunos.</p>';
+                return;
+            }
+            productos.forEach(producto => {
+                const checkboxDiv = `
+                    <div class="flex items-center">
+                        <input type="checkbox" id="producto-${producto.id}" name="selectedProductos" value="${producto.id}"
+                               class="form-checkbox h-5 w-5 text-green-600 rounded focus:ring-green-500 mr-2"
+                               data-dosis="${producto.dosisPor100L}" data-unidad="${producto.unidadMedida}">
+                        <label for="producto-${producto.id}" class="text-sm cursor-pointer">${producto.nombreComercial} (${producto.dosisPor100L} ${producto.unidadMedida}/100L)</label>
+                    </div>
+                `;
+                productosContainer.insertAdjacentHTML('beforeend', checkboxDiv);
+            });
+            document.querySelectorAll('input[name="selectedProductos"]').forEach(checkbox => {
+                checkbox.addEventListener('change', calculateApplicationSummary);
+            });
+        }
+
+        function calculateApplicationSummary() {
+            let totalSuperficie = 0;
+            let totalMojamiento = 0;
+
+            document.querySelectorAll('input[name="selectedCuarteles"]:checked').forEach(checkbox => {
+                const superficie = parseFloat(checkbox.dataset.superficie);
+                const mojamiento = parseFloat(checkbox.dataset.mojamiento);
+                totalSuperficie += superficie;
+                totalMojamiento += (superficie * mojamiento);
+            });
+
+            const solucionTotal = totalMojamiento;
+            solucionTotalDisplay.textContent = `${solucionTotal.toFixed(2)} L`;
+
+            productCalculationList.innerHTML = '';
+            if (solucionTotal > 0) {
+                document.querySelectorAll('input[name="selectedProductos"]:checked').forEach(checkbox => {
+                    const dosisPor100 = parseFloat(checkbox.dataset.dosis);
+                    const unidad = checkbox.dataset.unidad;
+                    const nombreProducto = productos.find(p => p.id === checkbox.value)?.nombreComercial || 'Producto Desconocido';
+
+                    const cantidadProducto = (solucionTotal * dosisPor100) / 100;
+                    const listItem = `<li>${nombreProducto}: ${cantidadProducto.toFixed(2)} ${unidad}</li>`;
+                    productCalculationList.insertAdjacentHTML('beforeend', listItem);
+                });
+            } else {
+                 productCalculationList.innerHTML = '<li>Selecciona cuarteles y productos para ver los cálculos.</li>';
+            }
+        }
+
+        applicationForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const fecha = document.getElementById('fecha').value;
+            const fundo = document.getElementById('fundo').value.trim();
+            const especie = document.getElementById('especie').value.trim();
+            const maquinaria = document.getElementById('maquinaria').value.trim();
+            const aplicador = document.getElementById('aplicador').value.trim();
+            const observaciones = document.getElementById('observaciones').value.trim();
+
+            const selectedCuartelesIds = Array.from(document.querySelectorAll('input[name="selectedCuarteles"]:checked')).map(cb => cb.value);
+            const selectedProductosIds = Array.from(document.querySelectorAll('input[name="selectedProductos"]:checked')).map(cb => cb.value);
+
+            if (!fecha || !fundo || !especie || selectedCuartelesIds.length === 0 || selectedProductosIds.length === 0) {
+                showToast('Por favor, completa la fecha, fundo, especie y selecciona al menos un cuartel y un producto.');
+                return;
+            }
+
+            const applicationCuarteles = selectedCuartelesIds.map(id => cuarteles.find(c => c.id === id));
+            const applicationProductos = selectedProductosIds.map(id => productos.find(p => p.id === id));
+
+            let totalSuperficieAplicada = 0;
+            let totalMojamientoAplicado = 0;
+            applicationCuarteles.forEach(c => {
+                totalSuperficieAplicada += c.superficie;
+                totalMojamientoAplicado += (c.superficie * c.mojamiento);
+            });
+            const solucionTotalFinal = totalMojamientoAplicado;
+
+            const productosCalculados = applicationProductos.map(p => {
+                const cantidad = (solucionTotalFinal * p.dosisPor100L) / 100;
+                return {
+                    id: p.id,
+                    nombreComercial: p.nombreComercial,
+                    cantidad: cantidad.toFixed(2),
+                    unidad: p.unidadMedida,
+                    dosisPor100L: p.dosisPor100L // Guardar la dosis usada en el momento del registro
+                };
+            });
+
+            const newApplication = {
+                fecha,
+                fundo,
+                especie,
+                maquinaria,
+                aplicador,
+                observaciones,
+                cuarteles: applicationCuarteles.map(c => ({ id: c.id, numero: c.numero, superficie: c.superficie, mojamiento: c.mojamiento })),
+                productos: productosCalculados,
+                solucionTotal: solucionTotalFinal.toFixed(2),
+                createdAt: firebase.firestore.FieldValue.serverTimestamp() // Para ordenar por fecha de creación
+            };
+
+            try {
+                await applicationsCollection.add(newApplication);
+                showToast('Aplicación registrada exitosamente en la nube.');
+                applicationForm.reset();
+                renderCuartelesCheckboxes();
+                renderProductosCheckboxes();
+                calculateApplicationSummary();
+                document.getElementById('tab-registros').click(); // Ir a la pestaña de registros
+            } catch (error) {
+                console.error("Error al registrar aplicación:", error);
+                showToast('Error al registrar aplicación.');
+            }
+        });
+
+        // --- Gestión de Registros de Aplicaciones (Firebase Integration) ---
+        function renderApplications(filterText = '') {
+            applicationsTableBody.innerHTML = '';
+            const filteredApps = aplicaciones.filter(app => {
+                const appString = `${app.fecha} ${app.fundo} ${app.especie} ${app.cuarteles.map(c => c.numero).join(', ')} ${app.productos.map(p => p.nombreComercial).join(', ')}`.toLowerCase();
+                return appString.includes(filterText.toLowerCase());
+            });
+
+            // Ordenar por fecha de registro (createdAt) descendente
+            filteredApps.sort((a, b) => {
+                // Manejar el caso donde createdAt podría ser nulo si el dato se creó antes de añadirlo
+                const dateA = a.createdAt ? a.createdAt.toDate() : new Date(a.fecha);
+                const dateB = b.createdAt ? b.createdAt.toDate() : new Date(b.fecha);
+                return dateB - dateA; // Más reciente primero
+            });
+
+
+            if (filteredApps.length === 0) {
+                applicationsTableBody.innerHTML = '<tr><td colspan="6" class="py-4 text-center text-white text-opacity-75">No hay registros de aplicaciones que coincidan con la búsqueda.</td></tr>';
+                return;
+            }
+
+            filteredApps.forEach(app => {
+                const cuartelesStr = app.cuarteles.map(c => `${c.numero} (${c.superficie}ha)`).join(', ');
+                const productosStr = app.productos.map(p => `${p.nombreComercial} (${p.cantidad} ${p.unidad})`).join(', ');
+
+                const row = `
+                    <tr class="border-b border-gray-500 last:border-b-0">
+                        <td class="py-2 px-4">${app.fecha}</td>
+                        <td class="py-2 px-4">${app.fundo}</td>
+                        <td class="py-2 px-4">${cuartelesStr}</td>
+                        <td class="py-2 px-4">${productosStr}</td>
+                        <td class="py-2 px-4">${app.solucionTotal} L</td>
+                        <td class="py-2 px-4">
+                            <button onclick="viewApplicationDetails('${app.id}')" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-md text-sm mr-2">Ver</button>
+                            <button onclick="deleteApplication('${app.id}')" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md text-sm">Eliminar</button>
+                        </td>
+                    </tr>
+                `;
+                applicationsTableBody.insertAdjacentHTML('beforeend', row);
+            });
+        }
+
+        async function deleteApplication(id) {
+            if (confirm('¿Estás seguro de que quieres eliminar este registro de aplicación?')) {
+                try {
+                    await applicationsCollection.doc(id).delete();
+                    showToast('Registro eliminado de la nube.');
+                } catch (error) {
+                    console.error("Error al eliminar registro:", error);
+                    showToast('Error al eliminar registro.');
+                }
+            }
+        }
+
+        function viewApplicationDetails(id) {
+            const app = aplicaciones.find(a => a.id === id);
+            if (!app) return;
+
+            let details = `
+                **Fecha:** ${app.fecha}
+                **Fundo:** ${app.fundo}
+                **Especie:** ${app.especie}
+                **Maquinaria:** ${app.maquinaria || 'N/A'}
+                **Aplicador:** ${app.aplicador || 'N/A'}
+                **Observaciones:** ${app.observaciones || 'N/A'}
+
+                **Cuarteles Aplicados:**
+            `;
+            app.cuarteles.forEach(c => {
+                details += `  - ${c.numero} (Sup: ${c.superficie}ha, Moj: ${c.mojamiento}L/ha)\n`;
+            });
+
+            details += `\n**Productos Aplicados:**\n`;
+            app.productos.forEach(p => {
+                details += `  - ${p.nombreComercial} (Cant: ${p.cantidad} ${p.unidad}, Dosis/100L: ${p.dosisPor100L || 'N/A'})\n`; // Usar p.dosisPor100L del registro
+            });
+
+            details += `\n**Solución Total:** ${app.solucionTotal} L`;
+
+            alert(details); // Se podría usar un modal más bonito aquí
+        }
+
+        searchApplications.addEventListener('keyup', () => {
+            renderApplications(searchApplications.value);
+        });
+
+        // Ordenamiento de tabla de registros
+        // (La ordenación principal será por fecha de creación de Firestore, pero se mantiene para filtrado local)
+        document.querySelectorAll('#registros-list th[data-sort]').forEach(header => {
+            header.addEventListener('click', () => {
+                const sortBy = header.dataset.sort;
+                const currentOrder = header.dataset.order || 'asc';
+                const newOrder = currentOrder === 'asc' ? 'desc' : 'asc';
+                header.dataset.order = newOrder;
+
+                // Ordenar la copia local de datos para la visualización
+                aplicaciones.sort((a, b) => {
+                    let valA, valB;
+                    if (sortBy === 'fecha') {
+                        valA = new Date(a.fecha);
+                        valB = new Date(b.fecha);
+                    } else if (sortBy === 'cuarteles') {
+                        valA = a.cuarteles.map(c => c.numero).join(', ');
+                        valB = b.cuarteles.map(c => c.numero).join(', ');
+                    } else if (sortBy === 'productos') {
+                        valA = a.productos.map(p => p.nombreComercial).join(', ');
+                        valB = b.productos.map(p => p.nombreComercial).join(', ');
+                    } else {
+                        valA = a[sortBy];
+                        valB = b[sortBy];
+                    }
+
+                    if (valA < valB) return newOrder === 'asc' ? -1 : 1;
+                    if (valA > valB) return newOrder === 'asc' ? 1 : -1;
+                    return 0;
+                });
+                renderApplications(searchApplications.value); // Re-render con el nuevo orden
+            });
+        });
+
+
+        // --- Sincronización con Firestore (Listeners en tiempo real) ---
+        function setupFirestoreListeners() {
+            // Listener para Cuarteles
+            cuartelesCollection.onSnapshot(snapshot => {
+                cuarteles = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderCuartelesTable();
+                renderCuartelesCheckboxes(); // Actualizar checkboxes en formulario de ingreso
+                calculateApplicationSummary(); // Recalcular si cambia algo
+            }, error => {
+                console.error("Error al obtener cuarteles:", error);
+                showToast("Error al cargar cuarteles desde la nube.");
+            });
+
+            // Listener para Productos
+            productosCollection.onSnapshot(snapshot => {
+                productos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderProductosTable();
+                renderProductosCheckboxes(); // Actualizar checkboxes en formulario de ingreso
+                calculateApplicationSummary(); // Recalcular si cambia algo
+            }, error => {
+                console.error("Error al obtener productos:", error);
+                showToast("Error al cargar productos desde la nube.");
+            });
+
+            // Listener para Aplicaciones
+            applicationsCollection.orderBy('createdAt', 'desc').onSnapshot(snapshot => {
+                aplicaciones = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderApplications(searchApplications.value); // Re-renderizar registros
+            }, error => {
+                console.error("Error al obtener aplicaciones:", error);
+                showToast("Error al cargar aplicaciones desde la nube.");
+            });
+        }
+
+
+        // --- Inicialización ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Eliminar precarga de datos LOCALES, ahora Firebase los manejará
+            // Precargar algunos datos de ejemplo en Firestore si no hay nada (OPCIONAL, HAZLO MANUALMENTE LA PRIMERA VEZ)
+            // Esto solo se hace si las colecciones están completamente vacías al inicio.
+            // Es mejor añadir un par de datos de prueba directamente desde la consola de Firebase la primera vez.
+            // Para no ejecutar esto cada vez que la app inicia y sobreescriba datos.
+
+            // Si quieres que el código cree datos de prueba una vez, puedes hacerlo así:
+            // if ((await cuartelesCollection.get()).empty) {
+            //     cuartelesCollection.add({ numero: 'C1', variedad: 'Gala', superficie: 5.0, mojamiento: 1000 });
+            //     cuartelesCollection.add({ numero: 'C2', variedad: 'Fuji', superficie: 7.5, mojamiento: 1200 });
+            // }
+            // if ((await productosCollection.get()).empty) {
+            //     productosCollection.add({ nombreComercial: 'Fungicida X', ingredienteActivo: 'Mancozeb', unidadMedida: 'Gramos', dosisPor100L: 250 });
+            //     productosCollection.add({ nombreComercial: 'Insecticida Y', ingredienteActivo: 'Imidacloprid', unidadMedida: 'ml', dosisPor100L: 150 });
+            // }
+
+            // Configurar los listeners de Firestore al cargar la página
+            setupFirestoreListeners();
+
+            // Configurar la pestaña activa al inicio (Ingreso de Aplicación)
+            document.getElementById('tab-ingreso').click();
+        });
+
+        // Service Worker para la PWA (asegúrate de tener service-worker.js y manifest.json)
+        // OJO: Si cambias el service-worker.js, necesitas actualizar la CACHE_NAME para que se refresque
+        // O forzar la actualización en el navegador (Ctrl+Shift+R en Chrome, o en Application -> Service Workers)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(registration => {
+                        console.log('Service Worker registrado con éxito:', registration);
+                    })
+                    .catch(error => {
+                        console.log('Fallo el registro del Service Worker:', error);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
